@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -6,17 +5,18 @@
 <title>Tiger Shopping</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"></script>
 
 <style>
 body{margin:0;font-family:Arial;background:#f1f3f6}
-header{background:#131921;color:#fff;padding:10px;display:flex;justify-content:space-between}
-.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;padding:10px}
-.product{background:#fff;padding:10px;text-align:center;border-radius:8px}
-#cartBox{display:none;position:fixed;right:0;top:0;width:300px;height:100%;background:#fff;padding:10px}
-button{padding:5px;margin:5px}
+header{background:#131921;color:#fff;padding:12px;display:flex;justify-content:space-between;align-items:center}
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;padding:10px}
+.product{background:#fff;padding:10px;border-radius:10px;text-align:center;box-shadow:0 2px 5px rgba(0,0,0,0.1)}
+#cartBox{display:none;position:fixed;right:0;top:0;width:300px;height:100%;background:#fff;padding:10px;overflow:auto}
+button{padding:6px;margin:5px;border:none;background:#ff9900;color:#000;border-radius:5px}
+input,textarea{padding:6px;margin:5px;width:90%}
 </style>
 </head>
 
@@ -24,17 +24,23 @@ button{padding:5px;margin:5px}
 
 <header>
 <h3>🐯 Tiger Shopping</h3>
-<button onclick="toggleCart()">Cart</button>
+<button onclick="toggleCart()">🛒</button>
 </header>
 
-<div id="login">
-<input id="email" placeholder="Email"><br><br>
-<input id="password" type="password" placeholder="Password"><br><br>
+<div id="login" style="text-align:center;margin-top:40px">
+<h3>Login</h3>
+<input id="email" placeholder="Email"><br>
+<input id="password" type="password" placeholder="Password"><br>
+
 <button onclick="login()">Login</button>
+<button onclick="signup()">Sign Up</button>
+<button onclick="resetPassword()">Forgot</button>
+<button onclick="googleLogin()">Google Login</button>
 </div>
 
 <div id="app" style="display:none">
-<div id="adminPanel" style="display:none">
+<div id="adminPanel" style="display:none;padding:10px">
+<h3>Add Product</h3>
 <input id="name" placeholder="Product">
 <input id="price" placeholder="Price">
 <input id="file" type="file">
@@ -55,7 +61,13 @@ Total ₹<span id="total">0</span><br>
 </div>
 
 <script>
-const firebaseConfig={apiKey:"YOUR_KEY",authDomain:"YOUR_DOMAIN",projectId:"YOUR_ID",storageBucket:"YOUR_BUCKET"};
+const firebaseConfig={
+apiKey:"YOUR_KEY",
+authDomain:"YOUR_DOMAIN",
+projectId:"YOUR_ID",
+storageBucket:"YOUR_BUCKET"
+};
+
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
 const auth=firebase.auth();
@@ -64,14 +76,45 @@ const storage=firebase.storage();
 let cart=[],total=0;
 const ADMIN="moorthimaheshwari007@gmail.com";
 
-function login(){auth.signInWithEmailAndPassword(email.value,password.value)}
+// LOGIN
+function login(){
+auth.signInWithEmailAndPassword(email.value,password.value)
+.catch(e=>alert(e.message));
+}
 
+// SIGNUP
+function signup(){
+auth.createUserWithEmailAndPassword(email.value,password.value)
+.then(()=>alert("Account created"))
+.catch(e=>alert(e.message));
+}
+
+// RESET
+function resetPassword(){
+if(!email.value)return alert("Enter email");
+auth.sendPasswordResetEmail(email.value)
+.then(()=>alert("Reset email sent"));
+}
+
+// GOOGLE LOGIN
+function googleLogin(){
+let provider=new firebase.auth.GoogleAuthProvider();
+auth.signInWithPopup(provider);
+}
+
+// AUTH STATE
 auth.onAuthStateChanged(u=>{
-if(u){login.style.display="none";app.style.display="block";
-if(u.email===ADMIN){adminPanel.style.display="block";loadOrders();}
+if(u){
+login.style.display="none";
+app.style.display="block";
+if(u.email===ADMIN){
+adminPanel.style.display="block";
+loadOrders();
+}
 }
 });
 
+// ADD PRODUCT
 function addProduct(){
 let f=file.files[0];
 let ref=storage.ref("products/"+f.name);
@@ -80,6 +123,7 @@ db.collection("products").add({name:name.value,price:price.value,image:url});
 }));
 }
 
+// SHOW PRODUCTS
 db.collection("products").onSnapshot(s=>{
 products.innerHTML="";
 s.forEach(d=>{
@@ -93,6 +137,7 @@ products.innerHTML+=`<div class='product'>
 });
 });
 
+// CART
 function addCart(n,p){
 cart.push({name:n,price:p});
 total+=+p;
@@ -100,11 +145,13 @@ cartItems.innerHTML+=`<li>${n} ₹${p}</li>`;
 document.getElementById("total").innerText=total;
 }
 
+// TOGGLE CART
 function toggleCart(){
 let c=document.getElementById("cartBox");
 c.style.display=c.style.display==="none"?"block":"none";
 }
 
+// ORDER
 function placeOrder(){
 if(!phone.value||!address.value)return alert("Fill details");
 
@@ -115,17 +162,20 @@ items:cart,total:total,phone:phone.value,address:address.value,status:"Pending"
 let msg="Order from Tiger Shopping%0A";
 cart.forEach(i=>msg+=i.name+" ₹"+i.price+"%0A");
 msg+="Total ₹"+total;
+
 window.open("https://wa.me/917810049030?text="+msg);
 
-cart=[];total=0;cartItems.innerHTML="";document.getElementById("total").innerText=0;
+cart=[];total=0;cartItems.innerHTML="";
+document.getElementById("total").innerText=0;
 }
 
+// ADMIN ORDERS
 function loadOrders(){
 db.collection("orders").onSnapshot(s=>{
 orders.innerHTML="<h3>Orders</h3>";
 s.forEach(d=>{
 let o=d.data();
-orders.innerHTML+=`<div>${o.phone} - ₹${o.total} - ${o.status}</div>`;
+orders.innerHTML+=`<div>${o.phone} - ₹${o.total}</div>`;
 });
 });
 }

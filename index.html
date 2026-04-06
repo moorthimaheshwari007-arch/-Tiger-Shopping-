@@ -1,43 +1,60 @@
-<!DOCTYPE html><html lang="en">
+
+<!DOCTYPE html>
+<html>
 <head>
-<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tiger Shopping</title><!-- Firebase --><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script><script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"></script><style>
+<title>Tiger Shopping</title>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js"></script>
+
+<style>
 body{margin:0;font-family:Arial;background:#f1f3f6}
-header{background:#131921;color:#fff;padding:10px}
-.container{padding:20px}
-.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px}
-.product{background:#fff;padding:10px;border-radius:8px;text-align:center}
-.product img{width:100%;height:150px;object-fit:cover}
-button{padding:6px;margin:5px;border:none;cursor:pointer}
-#cartBox{position:fixed;right:0;top:0;width:320px;height:100%;background:#fff;padding:10px;overflow:auto}
-.admin{background:#fff;padding:10px;margin-top:20px;border-radius:8px}
-</style></head><body><header>
-<h2>🐯 Tiger Shopping</h2>
-📞 7810049030, 8220205901 | WhatsApp: <a href="https://wa.me/917810049030" target="_blank">Chat</a>
-</header><div class="container"><div id="login">
+header{background:#131921;color:#fff;padding:10px;display:flex;justify-content:space-between}
+.products{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;padding:10px}
+.product{background:#fff;padding:10px;text-align:center;border-radius:8px}
+#cartBox{display:none;position:fixed;right:0;top:0;width:300px;height:100%;background:#fff;padding:10px}
+button{padding:5px;margin:5px}
+</style>
+</head>
+
+<body>
+
+<header>
+<h3>🐯 Tiger Shopping</h3>
+<button onclick="toggleCart()">Cart</button>
+</header>
+
+<div id="login">
 <input id="email" placeholder="Email"><br><br>
 <input id="password" type="password" placeholder="Password"><br><br>
 <button onclick="login()">Login</button>
-</div><div id="app" style="display:none"><div id="adminPanel" class="admin" style="display:none">
-<h3>Add Product</h3>
-<input id="name" placeholder="Name">
+</div>
+
+<div id="app" style="display:none">
+<div id="adminPanel" style="display:none">
+<input id="name" placeholder="Product">
 <input id="price" placeholder="Price">
 <input id="file" type="file">
 <button onclick="addProduct()">Add</button>
-</div><h3>Products</h3>
-<div id="product-list" class="products"></div><h3>Track Order</h3>
-<input id="trackPhone" placeholder="Enter phone">
-<button onclick="trackOrder()">Track</button>
-<div id="trackResult"></div><div id="orders"></div></div>
-</div><div id="cartBox">
+</div>
+
+<div class="products" id="products"></div>
+<div id="orders"></div>
+</div>
+
+<div id="cartBox">
 <h3>Cart</h3>
-<ul id="cart-items"></ul>
-Total ₹<span id="total">0</span>
+<ul id="cartItems"></ul>
+Total ₹<span id="total">0</span><br>
 <input id="phone" placeholder="Phone"><br>
-<textarea id="address" placeholder="Address"></textarea>
-<button onclick="placeOrder()">Pay & Order</button>
-</div><script>
+<textarea id="address" placeholder="Address"></textarea><br>
+<button onclick="placeOrder()">Order</button>
+</div>
+
+<script>
 const firebaseConfig={apiKey:"YOUR_KEY",authDomain:"YOUR_DOMAIN",projectId:"YOUR_ID",storageBucket:"YOUR_BUCKET"};
 firebase.initializeApp(firebaseConfig);
 const db=firebase.firestore();
@@ -45,16 +62,13 @@ const auth=firebase.auth();
 const storage=firebase.storage();
 
 let cart=[],total=0;
+const ADMIN="moorthimaheshwari007@gmail.com";
 
 function login(){auth.signInWithEmailAndPassword(email.value,password.value)}
 
-const ADMIN_EMAIL="moorthimaheshwari007@gmail.com";
-
-auth.onAuthStateChanged(user=>{
-if(user){
-login.style.display="none";
-app.style.display="block";
-if(user.email===ADMIN_EMAIL){adminPanel.style.display="block";loadOrders();}
+auth.onAuthStateChanged(u=>{
+if(u){login.style.display="none";app.style.display="block";
+if(u.email===ADMIN){adminPanel.style.display="block";loadOrders();}
 }
 });
 
@@ -67,32 +81,43 @@ db.collection("products").add({name:name.value,price:price.value,image:url});
 }
 
 db.collection("products").onSnapshot(s=>{
-product-list.innerHTML="";
+products.innerHTML="";
 s.forEach(d=>{
 let p=d.data();
-product-list.innerHTML+=`<div class='product'>
-<img src='${p.image}'><h4>${p.name}</h4>
+products.innerHTML+=`<div class='product'>
+<img src='${p.image}' width='100%'>
+<h4>${p.name}</h4>
 ₹${p.price}<br>
 <button onclick="addCart('${p.name}',${p.price})">Add</button>
 </div>`;
 });
 });
 
-function addCart(n,p){cart.push({name:n,price:p});total+=+p;
-cart-items.innerHTML+=`<li>${n} ₹${p}</li>`;
-document.getElementById("total").innerText=total;}
+function addCart(n,p){
+cart.push({name:n,price:p});
+total+=+p;
+cartItems.innerHTML+=`<li>${n} ₹${p}</li>`;
+document.getElementById("total").innerText=total;
+}
+
+function toggleCart(){
+let c=document.getElementById("cartBox");
+c.style.display=c.style.display==="none"?"block":"none";
+}
 
 function placeOrder(){
-if(cart.length==0||!phone.value||!address.value)return alert("Fill all");
+if(!phone.value||!address.value)return alert("Fill details");
 
-db.collection("orders").add({items:cart,total:total,phone:phone.value,address:address.value,status:"Pending",time:new Date()});
+db.collection("orders").add({
+items:cart,total:total,phone:phone.value,address:address.value,status:"Pending"
+});
 
-let msg="Hello from Tiger Shopping 🐯%0A%0AOrder:%0A";
-cart.forEach(i=>{msg+=i.name+" - ₹"+i.price+"%0A"});
-msg+="%0ATotal: ₹"+total+"%0APhone: "+phone.value+"%0AAddress: "+address.value;
+let msg="Order from Tiger Shopping%0A";
+cart.forEach(i=>msg+=i.name+" ₹"+i.price+"%0A");
+msg+="Total ₹"+total;
 window.open("https://wa.me/917810049030?text="+msg);
 
-cart=[];total=0;cart-items.innerHTML="";document.getElementById("total").innerText=0;
+cart=[];total=0;cartItems.innerHTML="";document.getElementById("total").innerText=0;
 }
 
 function loadOrders(){
@@ -100,25 +125,11 @@ db.collection("orders").onSnapshot(s=>{
 orders.innerHTML="<h3>Orders</h3>";
 s.forEach(d=>{
 let o=d.data();
-orders.innerHTML+=`<div class='admin'>
-${o.phone}<br>${o.address}<br>₹${o.total}<br>Status: ${o.status}<br>
-<button onclick="updateStatus('${d.id}','Shipped')">Ship</button>
-<button onclick="updateStatus('${d.id}','Delivered')">Done</button>
-</div>`;
+orders.innerHTML+=`<div>${o.phone} - ₹${o.total} - ${o.status}</div>`;
 });
 });
 }
+</script>
 
-function updateStatus(id,st){db.collection("orders").doc(id).update({status:st})}
-
-function trackOrder(){
-db.collection("orders").where("phone","==",trackPhone.value).onSnapshot(s=>{
-trackResult.innerHTML="";
-s.forEach(d=>{
-let o=d.data();
-trackResult.innerHTML+=`<div>${o.items.length} items - ₹${o.total} - ${o.status}</div>`;
-});
-});
-}
-</script></body>
+</body>
 </html>
